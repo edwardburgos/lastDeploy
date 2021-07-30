@@ -1,19 +1,12 @@
-import { Disponible, IProfesor, IUser } from "../../interfaces"
+import { Disponible, IProfesor, IUser } from "../interfaces"
 import Clase from "./models/Clase"
 import axios from "axios"
 import Profesor from "./models/Profesor"
 import Reclamo from "./models/Reclamo";
 import User from "./models/Usuario";
-import { Role } from "../../interfaces";
-import UsersInjectionToIUser from "./utils/transformations/UsersInjectionToIUser";
-
-const range = (n) => {
-    let iterable = []
-    for (let i=0; i<n; i++){
-        iterable.push(i)
-    }
-    return iterable
-}
+import { Role } from "../interfaces";
+import { hashPassword } from "./utils/auth";
+import config from './lib/config'
 
 const pass = "123456"
 
@@ -160,27 +153,23 @@ const bootstrap = async () => {
             Leonel
 
         ]) {
-            await axios.post(`http://localhost:3001/api/usuarios/register`, user)
+            try {
+                const u = await User.create({...user, password: hashPassword(user.password)});
+                if (u.role === Role.PROFESSOR) {
+                    const profesor = await Profesor.create({ User_mail: u.User_mail, ...u,
+                    where: {
+                        User_mail: u.User_mail
+                    } 
+                    })
+                }
+            } catch (error) {
+                console.log(error)
+            }
         }
     
-
         ////////////////////////
         // Agregar Profesores //
-        ////////////////////////
-
-        // professorsInjection
-
-        
-        // const newProfessor = await UsersInjectionToIUser(1, 5)
-        // const newUser = await UsersInjectionToIUser(0, 5)
-        // console.log(newProfessor)
-        // for (const x of newProfessor) {
-        //     if (x) await axios.post(`http://localhost:3001/api/usuarios/register`, x) 
-        // }
-        // for (const x of newUser){
-        //     if (x) await axios.post(`http://localhost:3001/api/usuarios/register`, x) 
-        // }
-        
+        ////////////////////////        
 
         const DiegoProfe: IProfesor = {
             name: `Diego`,
@@ -396,20 +385,15 @@ const bootstrap = async () => {
             }
            
             try {
-                const token1 = await axios.post(`http://localhost:3001/api/login`, {mail: user.User_mail, password: '123456'})
-                await axios.post(`http://localhost:3001/api/calendario/add`, payload, {headers: {Authorization: token1.data.token}})
+                
+                const token1 = await axios.post(`http://localhost:${config.port}/api/login`, {mail: user.User_mail, password: '123456'})
+                await axios.post(`http://localhost:${config.port}/api/calendario/add`, payload, {headers: {Authorization: token1.data.token}})
     
                 
             } catch (err) {
                 console.log(err)
             }
         }
-
-
-
-        
-
-
 
         // //////////////////////
         // // Agregar Reclamos //
